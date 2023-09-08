@@ -1,1 +1,60 @@
+# import the installed Jira library
+from jira.client import JIRA
+import json
+import jsonify
+
+
+def get_jiras(funcionario):
+    count = 0
+    status_aberto = 0
+    status_andamento = 0
+    registros = ""
+
+    # Criando a variavel referente ao ambiente da ATG
+    jiraOptions = {'server': "<server_url>"}
+
+    # Autenticando a nossa API, informando email e clientSecret
+    jira = JIRA(options=jiraOptions, basic_auth=(
+        "<user_email>", "<api_key>"))
+
+    # Segregando o tratamento para todos os funcionários e os separados da equipe
+    if funcionario == 'todos':
+        jql_str = f"project='Service Desk' \
+                    AND (created>=-13h OR updated >=-13h)"
+    else:
+        jql_str = f"project='Service Desk' \
+            AND assignee = '{funcionario}' \
+            AND (created>=-13h OR updated >=-13h)"
+
+    # Rodando o for em todos os chamados, filtrando através da Query
+    for singleIssue in jira.search_issues(jql_str=jql_str, maxResults=500):
+        count += 1
+        dicionario = str(singleIssue.fields.timetracking.raw)
+        dict_tempo = dicionario.find('timeSpent')
+
+        print('{} | {} | status: {} | tempo gasto: {} '.format(
+            singleIssue.key,
+            singleIssue.fields.summary,
+            singleIssue.fields.status,
+            dicionario[dict_tempo + 13:dict_tempo + 16],
+            singleIssue.fields.assignee
+                                 )
+              )
+        registros += ('{} | {} | status: {} | tempo gasto: {} <br>'.format(
+            singleIssue.key,
+            singleIssue.fields.summary,
+            singleIssue.fields.status,
+            dicionario[dict_tempo + 13:dict_tempo + 16],
+            singleIssue.fields.assignee
+                                          )
+                      )
+
+        if str(singleIssue.fields.status) == 'Aberto':
+            status_aberto += 1
+        if str(singleIssue.fields.status) == 'Em andamento':
+            status_andamento += 1
+    return [registros,
+            f'Número total de chamados: {count} <br> \
+            Chamados com status aberto: {status_aberto} <br> \
+            Chamados in progress: {status_andamento}']
 
